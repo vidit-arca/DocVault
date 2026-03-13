@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocVault | Secure Document Storage</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>DocVault</h1>
+            <p>Secure regulatory document upload and management system</p>
+        </header>
+
+        <section class="upload-section">
+            <form id="uploadForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="subdomain">Subdomain Classification</label>
+                        <select id="subdomain" required>
+                            <option value="Notifications">Notifications</option>
+                            <option value="Act">Act</option>
+                            <option value="Rules">Rules</option>
+                            <option value="Press Release">Press Release</option>
+                            <option value="Regulations">Regulations</option>
+                            <option value="Master Circular">Master Circular</option>
+                            <option value="Master Directions">Master Directions</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="title">Document Reference Title</label>
+                        <input type="text" id="title" placeholder="e.g. Master Circular 2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="issue_date">Official Issue Date</label>
+                        <input type="date" id="issue_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="file">Document Source (PDF)</label>
+                        <input type="file" id="file" accept=".pdf" required>
+                    </div>
+                </div>
+                <button type="submit" id="submitBtn">Authenticate & Store Document</button>
+            </form>
+        </section>
+
+        <section>
+            <div class="docs-header">
+                <h2>Regulatory Archive</h2>
+            </div>
+            <div id="documentList" class="document-grid">
+                <!-- Documents will be loaded here -->
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
