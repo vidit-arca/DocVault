@@ -13,9 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
 
         const formData = new FormData();
-        formData.append('subdomain', document.getElementById('subdomain').value);
-        formData.append('title', document.getElementById('title').value);
+        formData.append('sub_category', document.getElementById('sub_category').value);
+        formData.append('year', document.getElementById('year').value);
+        formData.append('month', document.getElementById('month').value);
         formData.append('issue_date', document.getElementById('issue_date').value);
+        formData.append('title', document.getElementById('title').value);
         formData.append('file', document.getElementById('file').files[0]);
 
         try {
@@ -40,6 +42,25 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = false;
         }
     });
+
+    // Auto-fill Year and Month from Issue Date
+    const issueDateInput = document.getElementById('issue_date');
+    const yearInput = document.getElementById('year');
+    const monthSelect = document.getElementById('month');
+
+    issueDateInput.addEventListener('change', (e) => {
+        const dateVal = e.target.value;
+        if (dateVal) {
+            const date = new Date(dateVal);
+            yearInput.value = date.getFullYear();
+
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            monthSelect.value = monthNames[date.getMonth()];
+        }
+    });
 });
 
 async function loadDocuments() {
@@ -61,17 +82,22 @@ async function loadDocuments() {
             const card = document.createElement('div');
             card.className = 'doc-card';
 
-            const subdomainClass = doc.subdomain.toLowerCase().replace(/\s+/g, '-');
+            const subCategoryClass = doc.sub_category.toLowerCase().replace(/\s+/g, '-');
 
             card.innerHTML = `
-                <span class="tag ${subdomainClass}">${doc.subdomain}</span>
+                <span class="tag ${subCategoryClass}">${doc.sub_category}</span>
+                <div class="doc-header-info">
+                    <span class="vertical-tag">MCA</span>
+                    <span class="date-tag">${doc.month} ${doc.year}</span>
+                </div>
                 <h3>${doc.title}</h3>
                 <div class="doc-info">
                     <div><span>Issue Date</span> <span>${doc.issue_date}</span></div>
-                    <div><span>Uploaded</span> <span>${new Date(doc.uploaded_at).toLocaleDateString()}</span></div>
+                    <div><span>File Name</span> <span class="file-name-truncate" title="${doc.file_name}">${doc.file_name}</span></div>
+                    <div><span>Path</span> <span class="file-path-truncate" title="${doc.path}">${doc.path}</span></div>
                 </div>
                 <div class="card-actions">
-                    <button class="btn-small btn-ghost" onclick="window.open('${doc.url}', '_blank')">View Document</button>
+                    <button class="btn-small btn-ghost" onclick="window.open('${doc.pdf_url}', '_blank')">View PDF</button>
                     <button class="btn-small btn-danger" onclick="deleteDocument(${doc.id})">Delete</button>
                 </div>
             `;

@@ -113,6 +113,13 @@ select:focus {
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
+input[readonly] {
+    background: rgba(255, 255, 255, 0.01);
+    color: var(--text-muted);
+    cursor: default;
+    border-style: dashed;
+}
+
 input[type="file"] {
     padding: 10px;
     cursor: pointer;
@@ -224,6 +231,32 @@ button:disabled {
 .tag.master-directions {
     background: rgba(99, 102, 241, 0.15);
     color: #818cf8;
+}
+
+.doc-header-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    opacity: 0.8;
+}
+
+.vertical-tag {
+    color: var(--primary);
+}
+
+.date-tag {
+    color: var(--text-muted);
+}
+
+.file-name-truncate,
+.file-path-truncate {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
 }
 
 .doc-card h3 {

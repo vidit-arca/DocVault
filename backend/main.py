@@ -61,9 +61,11 @@ def read_index():
 
 @app.post("/upload/")
 async def upload_document(
-    subdomain: str = Form(...),
-    title: str = Form(...),
+    sub_category: str = Form(...),
+    year: int = Form(...),
+    month: str = Form(...),
     issue_date: str = Form(...),
+    title: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(database.get_db)
 ):
@@ -71,7 +73,8 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
     file_extension = os.path.splitext(file.filename)[1]
-    object_name = f"{subdomain}/{title.replace(' ', '_')}_{issue_date}{file_extension}"
+    # Use sub_category for the prefix in MinIO
+    object_name = f"{sub_category}/{title.replace(' ', '_')}_{issue_date}{file_extension}"
 
     try:
         # Read file content
@@ -89,12 +92,33 @@ async def upload_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MinIO Upload Error: {str(e)}")
 
+    # Parsing logic: get filename without prefix
+    # If object_name is "Notifications/file.pdf", file_name becomes "file.pdf"
+    file_name_parsed = os.path.basename(object_name)
+
+    # Map pdf_url based on sub_category
+    url_mapping = {
+        "Notifications": "https://www.mca.gov.in/content/mca/global/en/acts-rules/ebooks/notifications.html",
+        "Circulars": "https://www.mca.gov.in/content/mca/global/en/acts-rules/ebooks/circulars.html",
+        "Press Release": "https://www.mca.gov.in/content/mca/global/en/notifications-tender/news-updates/press-release.html",
+        "News": "https://www.mca.gov.in/content/mca/global/en/notifications-tender/whats-new.html",
+        "Notices": "https://www.mca.gov.in/content/mca/global/en/notifications-tender/notices-circulars.html",
+        "Latest news": "https://www.mca.gov.in/content/mca/global/en/notifications-tender/news-updates/latest-news.html"
+    }
+    
+    selected_pdf_url = url_mapping.get(sub_category, object_name)
+
     # Save metadata to DB
     db_document = models.Document(
-        subdomain=subdomain,
-        title=title,
+        verticals="MCA", # Default as requested
+        sub_category=sub_category,
+        year=year,
+        month=month,
         issue_date=issue_date,
-        file_path=object_name  # In MinIO, we store the object name/key
+        title=title,
+        file_name=file_name_parsed,
+        path=object_name,
+        pdf_url=selected_pdf_url
     )
     db.add(db_document)
     db.commit()
@@ -109,14 +133,14 @@ def list_documents(db: Session = Depends(database.get_db)):
     # Enrich documents with presigned URLs for viewing
     for doc in documents:
         try:
-            doc.url = minio_client.get_presigned_url(
+            doc.presigned_url = minio_client.get_presigned_url(
                 "GET",
                 MINIO_BUCKET,
-                doc.file_path,
+                doc.path,
                 expires=timedelta(hours=1)
             )
         except Exception:
-            doc.url = "#"
+            doc.presigned_url = "#"
             
     return documents
 
@@ -128,7 +152,7 @@ def delete_document(document_id: int, db: Session = Depends(database.get_db)):
     
     # Remove from MinIO
     try:
-        minio_client.remove_object(MINIO_BUCKET, db_document.file_path)
+        minio_client.remove_object(MINIO_BUCKET, db_document.path)
     except Exception as e:
         print(f"Error deleting from MinIO: {e}")
     

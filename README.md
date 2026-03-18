@@ -1,6 +1,11 @@
 # DocVault | Secure Regulatory Document Archive
 
-DocVault is a high-performance, premium-designed document management system tailored for regulatory and domain-related PDF storage. It separates structured metadata from large binary files to ensure scalability and reliability.
+DocVault is a high-performance, premium-designed document management system tailored for regulatory and domain-related PDF storage. It provides a secure, archival-based alternative to the challenges of scraping regulatory portals like the MCA.
+
+> [!IMPORTANT]
+> **The MCA Scraping Solution**: This project was built to solve the issue of non-scrappable data on the MCA portal. Instead of unreliable scraping, DocVault uses client-side data capture and secure, temporary storage (MinIO) to provide a robust digital archive.
+
+**[Read Detailed Documentation & MCA Strategy](file:///Users/apple/Desktop/DocVault/DOCUMENTATION.md)**
 
 ## 🚀 Key Features
 
