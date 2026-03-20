@@ -1,50 +1,67 @@
 # DocVault: Professional Technical Documentation
 
 ## 1. Project Overview
-DocVault is a specialized document management and archival system designed to handle regulatory filings and official documents (Acts, Rules, Notifications, etc.). It serves as a robust, high-performance alternative to traditional scraping-based data collection methods, particularly for portals like the **Ministry of Corporate Affairs (MCA)**.
+DocVault is a specialized document management and archival system designed to handle regulatory filings and official documents (Acts, Rules, Notifications, etc.). It provides a reliable, secure, and high‑performance alternative to traditional scraping‑based data collection methods, especially for portals like the **Ministry of Corporate Affairs (MCA)**.
 
-## 2. Why DocVault was Built?
-The primary driver for building DocVault is the increasing difficulty of scraping data from official regulatory portals.
+## 2. Why DocVault Was Built
+The primary driver for building DocVault is the increasing difficulty of scraping data from official regulatory portals:
+- **Strict Anti‑Scraping Measures** – rate‑limiting, CAPTCHAs, IP blocking.
+- **Dynamic Content** – heavy reliance on JavaScript makes scrapers fragile.
+- **Legal & Compliance Risks** – scraping often violates Terms of Service.
+- **Data Integrity** – automated scrapers can misinterpret data when site structures change.
 
-### The MCA Scraping Challenge:
-- **Strict Anti-Scraping Measures**: Portals like MCA implement sophisticated rate-limiting, CAPTCHAs, and IP blocking.
-- **Dynamic Content**: Heavy reliance on JavaScript and dynamic rendering makes traditional scraping fragile and prone to failure.
-- **Legal & Compliance Risks**: Scraping often violates Terms of Service and can lead to legal complications.
-- **Data Integrity**: Automated scrapers can easily misinterpret data if the site structure changes unexpectedly.
+## 3. Core Solution – "Temporary Data Capture"
+Instead of fighting anti‑scraping mechanisms, DocVault adopts a **client‑side data capture** approach:
+1. **Manual/Assisted Selection** – Users upload documents they already have legitimate access to.
+2. **Standardized Metadata** – Each upload includes Subdomain, Title, Issue Date, and optional tags.
+3. **Immutable Storage** – Files are stored in **MinIO Object Storage**, providing S3‑compatible, high‑availability archival.
+4. **Presigned Access** – Time‑limited (1‑hour) presigned URLs enable secure sharing without exposing the entire bucket.
 
-## 3. How DocVault Solves the Scraping Issue
-Instead of fighting against anti-scraping measures, DocVault shifts the paradigm toward **Client-Side Data Capture & Secure Archival**.
-
-### The Solution: "Temporary Data Capture"
-DocVault enables a workflow where the data is "taken temporarily" from the client side:
-1. **Manual/Assisted Selection**: Instead of an automated bot hitting the portal, the system accepts documents directly from the authorized user/client who already has legitimate access to the portal.
-2. **Standardized Metadata**: The user provides the classification (Subdomain), Title, and Issue Date along with the document.
-3. **Immutable Storage**: Once captured, the document is stored in **MinIO Object Storage**, effectively "thawing" the data from the difficult-to-access portal and into a high-availability private archive.
-4. **Presigned Access**: To ensure security while allowing ease of use, DocVault provides **Temporary Presigned URLs**. These URLs grant secured, time-limited (1-hour) access to the documents, solving the issue of making the data available to stakeholders without exposing the entire storage bucket.
-
-## 4. Technical Architecture
-DocVault is built on a modern, decoupled stack to ensure scalability and visual excellence.
+## 4. Technical Architecture & Connectivity
+DocVault is connected via two primary data sources plus object storage:
+- **Data Source 1 (Reference)**: **`MCA.xlsx`** (provides URL mapping, sub-category definitions, and official categories).
+- **Data Source 2 (Metadata)**: **`sql_app.db`** (SQLite database for dynamic metadata tracking).
+- **File Storage**: **MinIO Object Storage** (for binary PDF storage).
 
 ```mermaid
 graph TD
-    User((User/Client)) -->|Upload Documents| Frontend[Vanilla HTML/JS/CSS]
-    Frontend -->|REST API| Backend[FastAPI]
-    Backend -->|Metadata| DB[(SQLite/SQLAlchemy)]
-    Backend -->|Binary Data| Storage[MinIO Object Storage]
-    Storage -->|Secure Presigned URL| User
+    User((User/Client)) -->|Upload Documents| Frontend["Frontend: Glassmorphic UI (HTML/JS/CSS)"]
+    Excel["Excel Reference (MCA.xlsx)"] -.->|Pre-defined Mapping| Backend
+    Frontend -->|REST API| Backend["Backend: FastAPI (Python)"]
+    Backend -->|Metadata| MetaDB["SQLite (sql_app.db)"]
+    Backend -->|Binary Data| Storage["MinIO Object Storage"]
+    Storage -->|Presigned URL| User
 ```
 
-### Key Components:
-- **Backend (FastAPI)**: Handles high-concurrency uploads and metadata management.
-- **Frontend (Premium UI)**: A glassmorphic, dark-themed dashboard that provides a premium user experience.
-- **Storage (MinIO)**: S3-compatible object storage that keeps PDFs secure and organized.
-- **Database (SQLite)**: Stores relational metadata for fast searching and categorization.
+### 4.1 Implementation of "Database Connectivity"
+The "connection" between the two data sources is a **Logical Mapping** implemented at the backend layer.
 
-## 5. Value Proposition
-- **Reliability**: No more broken scrapers. The data is always there because it was archived at the source.
-- **Speed**: Access documents via high-speed object storage instead of waiting for slow portal loads.
-- **Security**: Granular control over who can view what, using time-limited access tokens.
-- **Categorization**: Auto-groups documents into Acts, Rules, Master Circulars, etc., for instant retrieval.
+1.  **Reference Definition**: The system uses **`MCA.xlsx`** as the ground truth for sub-category categorizations and official portal URLs.
+2.  **Mapping Logic**: The FastAPI backend contains a `url_mapping` dictionary (derived from the Excel file).
+3.  **Dynamic Intersection**: Upon document upload, the backend intercepts the `sub_category` provided by the user. It then:
+    -   **Lookups**: Cross-references the `sub_category` against the `url_mapping` defined in the logic.
+    -   **Enrichment**: Dynamically assigns the official MCA URL to that specific document record.
+    -   **Persistence**: Finalizes the record by writing **both** the user-provided metadata and the Excel-sourced URL into the **SQLite Metadata DB**.
+
+## 5. Data Flow
+1. **User Upload** – User selects a file and metadata (Sub-category, Title, etc.) on the frontend.
+2. **API Call** – Frontend sends a POST request to `/upload/`.
+3. **Backend Processing**
+   - **Validation**: Checks file type (PDF only).
+   - **Logical Connection**: Connects the upload to its official category URL by matching the `sub_category` string.
+   - **Storage**: Streams binary content to MinIO.
+   - **Persistence**: Writes the final enriched record into the SQLite metadata table.
+4. **Archival & Access** – When listing documents, the backend generates a valid **Presigned URL** (1-hour expiry) via MinIO.
+
+## 6. Security Model
+- **Endpoint Security**: REST API with CORS configured to only allow authorized access.
+- **Object-Level Security**: Files are private in MinIO and only accessible via time-limited presigned URLs.
+- **Transport Security**: All communication should use HTTPS for data in transit.
+
+## 7. Deployment & Operations
+- **Containerisation**: The system is designed to run with MinIO and a Python environment.
+- **Environment Management**: Configuration for MinIO endpoints and database paths is managed via variables in `main.py`.
+- **High Availability**: MinIO provides built-in redundancy for stored files.
 
 ---
 *DocVault: Turning regulatory compliance into a seamless digital asset.*
